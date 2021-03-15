@@ -2,32 +2,42 @@
 
 if(window.location.pathname.includes('/issues')) {
   var doc = document;
-  console.log('EXECUTED')
   
+  var observer = new MutationObserver(function(mutations) {
+    var element = document.getElementById('james-unevaluated');
+    // https://stackoverflow.com/a/52834898/552792
+    var in_dom = document.body.contains(element);
+    if(!in_dom) {
+        console.log("element not found, so re-inserted");
+        addCustomFilter();
+        var element = document.getElementById('james-unevaluated');
+        if(window.location.href === element.href) {
+          element.setAttribute('aria-checked', 'true');
+        } else {
+          element.setAttribute('aria-checked', 'false');
+        }
+        element.getElementsByTagName('svg')[0].innerHTML = element.getAttribute('aria-checked') === 'true' ? '✔' : '';
+    } else if (in_dom) {
+        //in_dom = false;
+        console.log("element removed, so re-add it.");
+    }
+
+  });
+  observer.observe(document.body, {childList: true, subtree: true});
+
   
-  function fireEventOnStateChange(evt) {
-    (function(history){
-        var pushState = history.pushState;
-        history.pushState = function(state) {
-            if (typeof history.onpushstate == "function") {
-                history.onpushstate({state: state});
-            }
-            console.log('state change');
-            evt();
-            return pushState.apply(history, arguments);
-        };
-    })(window.history);
-  }
-  
-  function addCustomFilter() {
+  function addCustomFilter(isChecked) {
+    isChecked = isChecked === undefined ? false : isChecked;
+    var filterHrefStr = '/issues?q=is%3Aopen+is%3Aissue+-label%3A%22%23+Evaluation%3A+Bug%22+-label%3A%22%23+Evaluation%3A+Critical+Issue%22+-label%3A%22%23+Evaluation%3A+Enhancement%22+-label%3A%22%23+Evaluation%3A+Feature%22+-label%3A%22All%3A+Support+Assistance%22';
+    
     console.log('addCustomFilter called...');
     let filterMenuListDiv = doc.querySelector("#filters-select-menu > details-menu > div > div.SelectMenu-list");
     let filterElem = doc.createElement('a');
     filterElem.setAttribute('id', 'james-unevaluated');
     filterElem.setAttribute('class', 'SelectMenu-item');
     filterElem.setAttribute('role', 'menuitemradio');
-    filterElem.setAttribute('aria-checked', 'false');
-    filterElem.setAttribute('href', '/issues?q=is%3Aopen+is%3Aissue+-label%3A%22%23+Evaluation%3A+Bug%22+-label%3A%22%23+Evaluation%3A+Critical+Issue%22+-label%3A%22%23+Evaluation%3A+Enhancement%22+-label%3A%22%23+Evaluation%3A+Feature%22+-label%3A%22All%3A+Support+Assistance%22');
+    filterElem.setAttribute('aria-checked', isChecked.toString());
+    filterElem.setAttribute('href', filterHrefStr);
     filterElem.setAttribute('data-ga-click', 'Open issues, Not evaluated by evaluation group');
     let svgElem = doc.createElement('svg');
     svgElem.setAttribute('class', 'octicon octicon-check SelectMenu-icon SelectMenu-icon--check');
@@ -48,23 +58,7 @@ if(window.location.pathname.includes('/issues')) {
   
   customjsReady('body', function() {
     addCustomFilter();
-    fireEventOnStateChange(function() {
-      var interval = setInterval(function() {
-        var elem = document.getElementById('james-unevaluated');
-        console.log(elem)
-        if(!elem) {
-          console.log('add filter')
-          addCustomFilter();
-        } else {
-          console.log('stop checking for existing filter in 3 seconds')
-          setTimeout(function() { clearInterval(interval);},3000);
-        }
-      },400);
-    });
     
-      //   document.body.contains()
-      // })
-      //observeMutations();
   });
 }
 
