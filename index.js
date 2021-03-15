@@ -16,38 +16,17 @@ if(window.location.pathname.includes('/issues')) {
     }
   ];
   
-  var observer = new MutationObserver(function(mutations) {
-    //console.log('run MutationObserver callback...');
-    filters.forEach((filter, index) => {
-      //console.log('index = ' + index);
-      var filterWrapperElem = document.querySelector("#repo-content-pjax-container > div > div.d-flex.flex-justify-between.mb-md-3.flex-column-reverse.flex-md-row.flex-items-end");
-      //console.log('document.querySelector(\'[href="'+ filter.href +'"]\');');
-      var element = filterWrapperElem.querySelector('[href="'+ filter.href +'"]');
-      var in_dom = document.body.contains(element);
-      if(!in_dom) {
-        //console.log('element "' + filter.text + '" not found, so re-inserting');
-        addCustomFilter(filter);
-        markFilterAsCheckedIfInUse(filter);
-      } else if (in_dom) {
-          //console.log('element "' + filter.text + '" already exists.');
-      }
+  function run() {
+    filters.forEach((filter) => {
+      addCustomFilter(filter);
+      markFilterAsCheckedIfInUse(filter);
     });
-  });
-  
-  function markFilterAsCheckedIfInUse(filter) {
-    var element = document.querySelector('[href="'+ filter.href +'"]');
-    if(window.location.href === element.href) {
-      element.setAttribute('aria-checked', 'true');
-    } else {
-      element.setAttribute('aria-checked', 'false');
-    }
-    element.getElementsByTagName('svg')[0].innerHTML = element.getAttribute('aria-checked') === 'true' ? '✔' : '';
+    repeatAddingFiltersIfDOMChanges();
+    
   }
   
-
   function addCustomFilter(filter) {
     var filterHrefStr = filter.href;
-    
     //console.log('addCustomFilter called...');
     let filterMenuListDiv = doc.querySelector("#filters-select-menu > details-menu > div > div.SelectMenu-list");
     let filterElem = doc.createElement('a');
@@ -73,12 +52,42 @@ if(window.location.pathname.includes('/issues')) {
     filterMenuListDiv.insertBefore(filterElem, filterMenuListDiv.childNodes[0]);
   }
   
-  customjsReady('body', function() {
-    filters.forEach((filter) => {
-      addCustomFilter(filter);
-      markFilterAsCheckedIfInUse(filter);
-    });
+  function markFilterAsCheckedIfInUse(filter) {
+    var element = document.querySelector('[href="'+ filter.href +'"]');
+    if(window.location.href === element.href) {
+      element.setAttribute('aria-checked', 'true');
+    } else {
+      element.setAttribute('aria-checked', 'false');
+    }
+    element.getElementsByTagName('svg')[0].innerHTML = element.getAttribute('aria-checked') === 'true' ? '✔' : '';
+  }
+  
+  function repeatAddingFiltersIfDOMChanges() {
     observer.observe(document.body, {childList: true, subtree: true});
+  }
+  
+  function addFilterIfDOMChanges() {
+    //console.log('run MutationObserver callback...');
+    filters.forEach((filter, index) => {
+      //console.log('index = ' + index);
+      var filterWrapperElem = document.querySelector("#repo-content-pjax-container > div > div.d-flex.flex-justify-between.mb-md-3.flex-column-reverse.flex-md-row.flex-items-end");
+      //console.log('document.querySelector(\'[href="'+ filter.href +'"]\');');
+      var element = filterWrapperElem.querySelector('[href="'+ filter.href +'"]');
+      var in_dom = document.body.contains(element);
+      if(!in_dom) {
+        //console.log('element "' + filter.text + '" not found, so re-inserting');
+        addCustomFilter(filter);
+        markFilterAsCheckedIfInUse(filter);
+      } else if (in_dom) {
+          //console.log('element "' + filter.text + '" already exists.');
+      }
+    });
+  }
+  
+  var observer = new MutationObserver(addFilterIfDOMChanges);
+  
+  customjsReady('body', function() {
+    run();
   });
 }
 
