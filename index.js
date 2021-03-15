@@ -2,9 +2,8 @@ if(window.location.pathname.includes('/issues')) {
   var doc = document;
   var log = console.log;
   
-  var filters = getFiltersFromLocalStorage();
-  
   function run() {
+    let filters = getFiltersFromLocalStorage();
     filters.forEach((filter) => {
       addCustomFilter(filter);
       markFilterAsCheckedIfInUse(filter);
@@ -16,13 +15,13 @@ if(window.location.pathname.includes('/issues')) {
   }
   
   function getFiltersFromLocalStorage() {
-    var filtersJSON = localStorage.getItem('custom-filters');
-    var filters = filtersJSON != null ? JSON.parse(filtersJSON) : [];
+    let filtersJSON = localStorage.getItem('custom-filters');
+    let filters = filtersJSON != null ? JSON.parse(filtersJSON) : [];
     return filters == null ? [] : filters;
   }
   
   function addCustomFilter(filter) {
-    var filterHrefStr = filter.href;
+    let filterHrefStr = filter.href;
     //console.log('addCustomFilter called...');
     let filterMenuListDiv = doc.querySelector("#filters-select-menu > details-menu > div > div.SelectMenu-list");
     let filterElem = doc.createElement('a');
@@ -64,6 +63,7 @@ if(window.location.pathname.includes('/issues')) {
   
   function addFilterIfDOMChanges() {
     //console.log('run MutationObserver callback...');
+    let filters = getFiltersFromLocalStorage();
     filters.forEach((filter, index) => {
       var filterWrapperElem = doc.querySelector("#repo-content-pjax-container > div > div.d-flex.flex-justify-between.mb-md-3.flex-column-reverse.flex-md-row.flex-items-end");
       var element = filterWrapperElem.querySelector('[href="'+ filter.href +'"]');
@@ -93,17 +93,19 @@ if(window.location.pathname.includes('/issues')) {
   }
   
   function makeSaveFilterButtonClickable() {
-    doc.querySelector('[data-filters=save]').onclick = saveNewFilterInLocalStorage;
+    doc.querySelector('[data-filters=save]').onclick = function() {
+      let filter = saveNewFilterInLocalStorage();
+      addCustomFilter(filter);
+      markFilterAsCheckedIfInUse(filter)
+    }
   }
   
   function saveNewFilterInLocalStorage() {
     let href = window.location.pathname + window.location.search;
     console.log(href);
-    var filtersJSON = localStorage.getItem('custom-filters');
-    var filtersArr = filtersJSON != null ? JSON.parse(filtersJSON) : [];
-    var filtersArr = filtersArr == null ? [] : filtersArr;
+    let filters = getFiltersFromLocalStorage();
     var filterExists = false;
-    filtersArr.forEach((filter) => {
+    filters.forEach((filter) => {
       if(filter.href === href && !filterExists) {
         alert('Filter already exists...');
         filterExists = true;
@@ -115,8 +117,10 @@ if(window.location.pathname.includes('/issues')) {
       alert('Not saved. Please enter a name.');
       return;
     }
-    filtersArr.push({ text: newFilterName, href: href });
-    localStorage.setItem('custom-filters', JSON.stringify(filtersArr));
+    var filter = { text: newFilterName, href: href };
+    filters.push(filter);
+    localStorage.setItem('custom-filters', JSON.stringify(filters));
+    return filter;
   }
   
   var observer = new MutationObserver(addFilterIfDOMChanges);
