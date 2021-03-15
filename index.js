@@ -1,20 +1,8 @@
-// Here You can type your custom JavaScript...
-
 if(window.location.pathname.includes('/issues')) {
   var doc = document;
+  var log = console.log;
   
-  /**
-   * Add your own custom filters here.
-   */
-  var filters = [{
-      text: 'Unevaluated, Open issues',
-      href: '/issues?q=is%3Aopen+is%3Aissue+-label%3A%22%23+Evaluation%3A+Bug%22+-label%3A%22%23+Evaluation%3A+Critical+Issue%22+-label%3A%22%23+Evaluation%3A+Enhancement%22+-label%3A%22%23+Evaluation%3A+Feature%22+-label%3A%22All%3A+Support+Assistance%22'
-    },
-    {
-      text: 'All Open, # Evaluation: Critical Issue',
-      href: '/issues?q=is%3Aopen+is%3Aissue+label%3A%22%23+Evaluation%3A+Critical+Issue%22',
-    }
-  ];
+  var filters = getFiltersFromLocalStorage();
   
   function run() {
     filters.forEach((filter) => {
@@ -22,7 +10,15 @@ if(window.location.pathname.includes('/issues')) {
       markFilterAsCheckedIfInUse(filter);
     });
     repeatAddingFiltersIfDOMChanges();
-    
+    addSaveFilterButton();
+    styleAndPositionSaveFilterButton();
+    makeSaveFilterButtonClickable();
+  }
+  
+  function getFiltersFromLocalStorage() {
+    var filtersJSON = localStorage.getItem('custom-filters');
+    var filters = filtersJSON != null ? JSON.parse(filtersJSON) : [];
+    return filters == null ? [] : filters;
   }
   
   function addCustomFilter(filter) {
@@ -53,7 +49,7 @@ if(window.location.pathname.includes('/issues')) {
   }
   
   function markFilterAsCheckedIfInUse(filter) {
-    var element = document.querySelector('[href="'+ filter.href +'"]');
+    var element = doc.querySelector('[href="'+ filter.href +'"]');
     if(window.location.href === element.href) {
       element.setAttribute('aria-checked', 'true');
     } else {
@@ -63,25 +59,64 @@ if(window.location.pathname.includes('/issues')) {
   }
   
   function repeatAddingFiltersIfDOMChanges() {
-    observer.observe(document.body, {childList: true, subtree: true});
+    observer.observe(doc.body, {childList: true, subtree: true});
   }
   
   function addFilterIfDOMChanges() {
     //console.log('run MutationObserver callback...');
     filters.forEach((filter, index) => {
-      //console.log('index = ' + index);
-      var filterWrapperElem = document.querySelector("#repo-content-pjax-container > div > div.d-flex.flex-justify-between.mb-md-3.flex-column-reverse.flex-md-row.flex-items-end");
-      //console.log('document.querySelector(\'[href="'+ filter.href +'"]\');');
+      var filterWrapperElem = doc.querySelector("#repo-content-pjax-container > div > div.d-flex.flex-justify-between.mb-md-3.flex-column-reverse.flex-md-row.flex-items-end");
       var element = filterWrapperElem.querySelector('[href="'+ filter.href +'"]');
-      var in_dom = document.body.contains(element);
+      var in_dom = doc.body.contains(element);
       if(!in_dom) {
-        //console.log('element "' + filter.text + '" not found, so re-inserting');
         addCustomFilter(filter);
         markFilterAsCheckedIfInUse(filter);
-      } else if (in_dom) {
-          //console.log('element "' + filter.text + '" already exists.');
       }
     });
+    if(!doc.querySelector('[data-filters=save')) {
+      addSaveFilterButton();
+      styleAndPositionSaveFilterButton();
+      makeSaveFilterButtonClickable();
+    }
+  }
+  
+  function addSaveFilterButton() {
+    var saveFilterBtn = doc.createElement('button');
+    saveFilterBtn.setAttribute('data-filters','save');
+    saveFilterBtn.setAttribute('class','btn btn-primary');
+    doc.querySelector('#filters-select-menu > details-menu > div > div.SelectMenu-header > h3').insertAdjacentElement('afterend', saveFilterBtn);
+  }
+  
+  function styleAndPositionSaveFilterButton() {
+    doc.querySelector('[data-filters=save]').style = 'width:100px;height: 20px;display: padding-bottom: 1px; text-align: center; display:inline-block; padding-bottom:25px;position:absolute;left:44%;border-radius:6px;';
+    doc.querySelector('[data-filters=save]').textContent = 'Save Filter';
+  }
+  
+  function makeSaveFilterButtonClickable() {
+    doc.querySelector('[data-filters=save]').onclick = saveNewFilterInLocalStorage;
+  }
+  
+  function saveNewFilterInLocalStorage() {
+    let href = window.location.pathname + window.location.search;
+    console.log(href);
+    var filtersJSON = localStorage.getItem('custom-filters');
+    var filtersArr = filtersJSON != null ? JSON.parse(filtersJSON) : [];
+    var filtersArr = filtersArr == null ? [] : filtersArr;
+    var filterExists = false;
+    filtersArr.forEach((filter) => {
+      if(filter.href === href && !filterExists) {
+        alert('Filter already exists...');
+        filterExists = true;
+      }
+    });
+    if(filterExists) return;
+    var newFilterName = prompt('Enter name for saved filter:');
+    if(newFilterName === '' || newFilterName == null) {
+      alert('Not saved. Please enter a name.');
+      return;
+    }
+    filtersArr.push({ text: newFilterName, href: href });
+    localStorage.setItem('custom-filters', JSON.stringify(filtersArr));
   }
   
   var observer = new MutationObserver(addFilterIfDOMChanges);
@@ -90,5 +125,3 @@ if(window.location.pathname.includes('/issues')) {
     run();
   });
 }
-
-
